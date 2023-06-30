@@ -1,0 +1,17 @@
+{
+  "name": "playwright-crawler",
+  "version": "1.0.0",
+  "description": "Crawl the web using Playwright",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Olaf Alders",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.35.1"
+  },
+  "dependencies": {
+    "playwright-core": "^1.35.1"
+  }
+}
