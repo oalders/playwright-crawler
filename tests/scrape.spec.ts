@@ -10,12 +10,12 @@ type URLStack = {
     [key: string]: StackReport;
 };
 
-const baseURL = new URL('https://www.maxmind.dev/en/');
+const baseURL = new URL('https://www.prettygoodping.com/');
 const history: URLStack = {};
 
 test('has title', async ({ page }) => {
     test.setTimeout(120000);
-    const begin = new URL('https://www.maxmind.dev/en/home');
+    const begin = new URL(baseURL);
     await extractLinks(begin, page);
 });
 
