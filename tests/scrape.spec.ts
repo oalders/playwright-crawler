@@ -24,8 +24,7 @@ const extractLinks = async (nextPage: URL, page: Page) => {
     const response = await page.goto(nextPage.toString(), { timeout: 10000 });
     history[nextPage.toString()] = { url: nextPage, visited: true, statusCode: response?.status() } as StackReport;
     if (response?.status() === 404) {
-        console.log(`404 on ${nextPage.toString()}`);
-        throw new Error('oof');
+        console.error(`404 on ${nextPage.toString()}`);
     }
 
     const found = page.locator('[href]');
