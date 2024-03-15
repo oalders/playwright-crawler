@@ -27,7 +27,7 @@ const extractLinks = async (nextPage: URL, page: Page) => {
         console.error(`404 on ${nextPage.toString()}`);
     }
 
-    const found = page.locator('[href]');
+    const found = page.getByRole('link');
     const count = await found.count();
 
     for (let i = 0; i < count; i++) {
