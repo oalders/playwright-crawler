@@ -1,12 +1,12 @@
 import { test, Page } from '@playwright/test'
+import * as cheerio from 'cheerio';
 
 type StackReport = {
-    url: string | URL,
+    url: string | URL
     visited: boolean
     statusCode?: number
     meta?: {
         description?: string
-        keywords?: string
     }
 }
 type URLStack = {
@@ -26,13 +26,14 @@ test('has title', async ({ page }) => {
 const extractLinks = async (nextPage: URL, page: Page) => {
     console.log(nextPage.toString())
     const response = await page.goto(nextPage.toString(), { timeout: 10000 })
+    const htmlContent = await page.content();
+    const $ = cheerio.load(htmlContent);
     history[nextPage.toString()] = {
         url: nextPage.toString(),
         visited: true,
         statusCode: response?.status(),
         meta: {
-            description: await page.locator('meta[name="description"]').getAttribute('content'),
-            // keywords: await page.locator('meta[name="keywords"]').innerText(),
+            description: $('meta[name="description"]').attr('content'),
         },
     } as StackReport
     if (response?.status() === 404) {
