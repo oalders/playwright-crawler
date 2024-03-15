@@ -1,13 +1,12 @@
 import { test, Page } from '@playwright/test'
-import * as cheerio from 'cheerio';
+import * as cheerio from 'cheerio'
 
 type StackReport = {
     url: string | URL
     visited: boolean
     statusCode?: number
-    meta?: {
-        description?: string
-    }
+    description?: string
+    title?: string
 }
 type URLStack = {
     [key: string]: StackReport
@@ -26,15 +25,14 @@ test('has title', async ({ page }) => {
 const extractLinks = async (nextPage: URL, page: Page) => {
     console.log(nextPage.toString())
     const response = await page.goto(nextPage.toString(), { timeout: 10000 })
-    const htmlContent = await page.content();
-    const $ = cheerio.load(htmlContent);
+    const htmlContent = await page.content()
+    const $ = cheerio.load(htmlContent)
     history[nextPage.toString()] = {
         url: nextPage.toString(),
         visited: true,
         statusCode: response?.status(),
-        meta: {
-            description: $('meta[name="description"]').attr('content'),
-        },
+        description: $('meta[name="description"]').attr('content'),
+        title: $('title').text(),
     } as StackReport
     if (response?.status() === 404) {
         console.error(`404 on ${nextPage.toString()}`)
