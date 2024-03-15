@@ -12,6 +12,7 @@
     "@playwright/test": "^1.42.1"
   },
   "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
     "playwright-core": "^1.42.1"
   }
 }
