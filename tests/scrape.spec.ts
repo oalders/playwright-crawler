@@ -7,6 +7,7 @@ type StackReport = {
     statusCode?: number
     description?: string
     title?: string
+    heading?: string
 }
 type URLStack = {
     [key: string]: StackReport
@@ -33,6 +34,7 @@ const extractLinks = async (nextPage: URL, page: Page) => {
         statusCode: response?.status(),
         description: $('meta[name="description"]').attr('content'),
         title: $('title').text(),
+        heading: $('h1').first().text(),
     } as StackReport
     if (response?.status() === 404) {
         console.error(`404 on ${nextPage.toString()}`)
