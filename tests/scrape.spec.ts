@@ -17,6 +17,7 @@ test('has title', async ({ page }) => {
     test.setTimeout(120000);
     const begin = new URL(baseURL);
     await extractLinks(begin, page);
+    console.dir(history, { depth: 3 });
 });
 
 const extractLinks = async (nextPage: URL, page: Page) => {
