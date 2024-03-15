@@ -1,5 +1,7 @@
 import { test, Page } from '@playwright/test'
 import * as cheerio from 'cheerio'
+import * as natural from 'natural';
+import { english as stopWords } from 'stopwords';
 
 type StackReport = {
     url: string | URL
@@ -40,6 +42,9 @@ const extractLinks = async (nextPage: URL, page: Page) => {
         console.error(`404 on ${nextPage.toString()}`)
     }
 
+    const words = calculateWordFrequency(await page.textContent('body'));
+    console.dir(words)
+
     const found = page.getByRole('link')
     const count = await found.count()
 
@@ -75,8 +80,34 @@ const extractLinks = async (nextPage: URL, page: Page) => {
     for (const key in history) {
         if (history[key].visited === false) {
             console.log(`----- extract from ${history[key].url.toString()}`)
-            await extractLinks(history[key].url, page)
+            const url = new URL(history[key].url);
+            await extractLinks(url, page);
         }
     }
     console.log('finished extractLinks')
+}
+
+const calculateWordFrequency = (text: string) => {
+    // Tokenize the text into individual words
+    const tokenizer = new natural.WordTokenizer();
+    const tokens = tokenizer.tokenize(text);
+
+    if (tokens === null) {
+        return [];
+    }
+
+    // Remove common words (stopwords) from the list of tokens
+    const filteredTokens = tokens.filter(token => !stopWords.includes(token.toLowerCase()));
+
+    // Count the frequency of each word
+    const wordFrequency: Record<string, number> = {};
+    filteredTokens.forEach(token => {
+        wordFrequency[token] = (wordFrequency[token] || 0) + 1;
+    });
+
+    // Convert word frequency object into a sorted array
+    const sortedWordFrequency = Object.entries(wordFrequency).sort((a, b) => b[1] - a[1]);
+
+    // Return the word frequency
+    return sortedWordFrequency;
 }
