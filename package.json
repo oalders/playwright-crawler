@@ -12,6 +12,6 @@
     "@playwright/test": "^1.35.1"
   },
   "dependencies": {
-    "playwright-core": "^1.35.1"
+    "playwright-core": "^1.42.1"
   }
 }
