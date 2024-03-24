@@ -42,7 +42,8 @@ const extractLinks = async (nextPage: URL, page: Page) => {
         console.error(`404 on ${nextPage.toString()}`)
     }
 
-    const words = calculateWordFrequency(await page.textContent('body'));
+    const bodyContent = await page.textContent('body');
+    const words = bodyContent ? calculateWordFrequency(bodyContent) : [];
     console.dir(words)
 
     const found = page.getByRole('link')
