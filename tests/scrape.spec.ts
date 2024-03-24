@@ -18,11 +18,25 @@ type URLStack = {
 const baseURL = new URL('https://www.prettygoodping.com/')
 const history: URLStack = {}
 
+import { writeFileSync } from 'node:fs';
+import Papa from 'papaparse';
+
 test('has title', async ({ page }) => {
     test.setTimeout(120000)
     const begin = new URL(baseURL)
     await extractLinks(begin, page)
     console.dir(history, { depth: null })
+
+    // Get the url, description, title, and heading fields from the values of the history object
+    const data = Object.values(history).map(({url, description, title, heading}) =>
+        ({url, description, title, heading})
+    );
+
+    // Convert to CSV using Papa.unparse
+    const csv = Papa.unparse(data);
+
+    // Write the CSV to a file
+    writeFileSync('report.csv', csv);
 })
 
 const extractLinks = async (nextPage: URL, page: Page) => {
@@ -31,7 +45,7 @@ const extractLinks = async (nextPage: URL, page: Page) => {
     const htmlContent = await page.content()
     const $ = cheerio.load(htmlContent)
     history[nextPage.toString()] = {
-        url: nextPage.toString(),
+        url: new URL(nextPage.toString()).pathname,
         visited: true,
         statusCode: response?.status(),
         description: $('meta[name="description"]').attr('content'),
