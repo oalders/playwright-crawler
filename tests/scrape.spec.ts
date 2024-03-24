@@ -52,6 +52,7 @@ const extractLinks = async (nextPage: URL, page: Page) => {
     for (let i = 0; i < count; i++) {
         const link = await found.nth(i).getAttribute('href')
         if (link === null) {
+            console.error("null link?");
             continue
         }
         try {
