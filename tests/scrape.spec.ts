@@ -62,7 +62,7 @@ const extractLinks = async (nextPage: URL, page: Page) => {
                 continue
             }
             if (
-                url.host !== nextPage.hostname ||
+                url.hostname !== nextPage.hostname ||
                 link === '#' ||
                 url.toString() in history
             ) {
