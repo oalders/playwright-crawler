@@ -73,7 +73,7 @@ const crawl = async (nextPage: URL, page: Page) => {
 
   const bodyContent = await page.textContent('body');
   const words = bodyContent ? calculateWordFrequency(bodyContent) : [];
-  await logLinkAttributes(page);
+  await imgAttributes(page);
   console.dir(words);
 
   const found = page.getByRole('link');
@@ -148,16 +148,25 @@ const calculateWordFrequency = (text: string) => {
   return sortedWordFrequency;
 };
 
-async function logLinkAttributes(page: Page) {
-  const links = page.getByRole('link');
-  const count = await links.count();
+async function imgAttributes(page: Page) {
+  const images = page.getByRole('img');
+  const count = await images.count();
 
   for (let i = 0; i < count; i++) {
-    const link = links.nth(i);
-    const href = await link.getAttribute('href');
-    const title = await link.getAttribute('title');
-    const alt = await link.getAttribute('alt');
+    const img = await images.nth(i);
 
-    console.log(`Link ${i + 1}: href=${href}, title=${title}, alt=${alt}`);
+    const innerHTML = await img.innerHTML();
+    if (innerHTML.includes('use xlink')) {
+      continue;
+    }
+
+    const src = await img.getAttribute('src');
+    const title = await img.getAttribute('title');
+    const alt = await img.getAttribute('alt');
+
+    if (src === null) {
+      console.dir(await img.innerHTML());
+    }
+    console.log(`Link ${i + 1}: src="${src}", title="${title}", alt="${alt}"`);
   }
 }
