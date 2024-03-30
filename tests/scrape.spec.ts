@@ -73,6 +73,7 @@ const crawl = async (nextPage: URL, page: Page) => {
 
   const bodyContent = await page.textContent('body');
   const words = bodyContent ? calculateWordFrequency(bodyContent) : [];
+  await logLinkAttributes(page);
   console.dir(words);
 
   const found = page.getByRole('link');
@@ -153,6 +154,10 @@ async function logLinkAttributes(page: Page) {
 
   for (let i = 0; i < count; i++) {
     const link = await links.nth(i);
+    if (link === null) {
+      console.error('null link in attribute logger');
+      continue;
+    }
     const href = await link.getAttribute('href');
     const title = await link.getAttribute('title');
     const alt = await link.getAttribute('alt');
