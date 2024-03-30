@@ -153,11 +153,7 @@ async function logLinkAttributes(page: Page) {
   const count = await links.count();
 
   for (let i = 0; i < count; i++) {
-    const link = await links.nth(i);
-    if (link === null) {
-      console.error('null link in attribute logger');
-      continue;
-    }
+    const link = links.nth(i);
     const href = await link.getAttribute('href');
     const title = await link.getAttribute('title');
     const alt = await link.getAttribute('alt');
