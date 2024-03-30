@@ -24,7 +24,7 @@ import Papa from 'papaparse';
 test('has title', async ({ page }) => {
     test.setTimeout(120000)
     const begin = new URL(baseURL)
-    await extractLinks(begin, page)
+    await crawl(begin, page)
     console.dir(history, { depth: null })
 
     // Get the url, description, title, and heading fields from the values of the history object
@@ -39,7 +39,7 @@ test('has title', async ({ page }) => {
     writeFileSync('report.csv', csv);
 })
 
-const extractLinks = async (nextPage: URL, page: Page) => {
+const crawl = async (nextPage: URL, page: Page) => {
     console.log(nextPage.toString())
     const response = await page.goto(nextPage.toString(), { timeout: 10000 })
     const htmlContent = await page.content()
@@ -97,7 +97,7 @@ const extractLinks = async (nextPage: URL, page: Page) => {
         if (history[key].visited === false) {
             console.log(`----- extract from ${history[key].url.toString()}`)
             const url = new URL(history[key].url);
-            await extractLinks(url, page);
+            await crawl(url, page);
         }
     }
     console.log('finished extractLinks')
