@@ -3,11 +3,18 @@ import * as cheerio from 'cheerio';
 import * as natural from 'natural';
 import { english as stopWords } from 'stopwords';
 
+type Image = {
+  src: string | null;
+  title: string | null;
+  alt: string | null;
+};
+
 type StackReport = {
   url: string | URL;
   visited: boolean;
   statusCode?: number;
   description?: string;
+  images: Image[];
   title?: string;
   heading?: string;
 };
@@ -66,6 +73,7 @@ const crawl = async (nextPage: URL, page: Page) => {
     description: $('meta[name="description"]').attr('content'),
     title: $('title').text(),
     heading: $('h1').first().text(),
+    images: await imgAttributes(page),
   } as StackReport;
   if (response?.status() === 404) {
     console.error(`404 on ${nextPage.toString()}`);
@@ -111,9 +119,7 @@ const crawl = async (nextPage: URL, page: Page) => {
   }
   for (const key in history) {
     if (history[key].visited === false) {
-      console.log(`----- extract from ${history[key].url.toString()}`);
-      const url = new URL(history[key].url);
-      await crawl(url, page);
+      await crawl(new URL(history[key].url), page);
     }
   }
   console.log('finished extractLinks');
@@ -148,25 +154,36 @@ const calculateWordFrequency = (text: string) => {
   return sortedWordFrequency;
 };
 
-async function imgAttributes(page: Page) {
+async function imgAttributes(page: Page): Promise<Image[]> {
   const images = page.getByRole('img');
   const count = await images.count();
+  const imgList: Image[] = [];
 
   for (let i = 0; i < count; i++) {
-    const img = await images.nth(i);
-
+    const img = images.nth(i);
     const innerHTML = await img.innerHTML();
-    if (innerHTML.includes('use xlink')) {
+
+    const $ = cheerio.load(innerHTML);
+    const tagName = $('*').eq(3).prop('tagName');
+    if (tagName === 'USE' || tagName === 'PATH') {
       continue;
     }
 
-    const src = await img.getAttribute('src');
-    const title = await img.getAttribute('title');
-    const alt = await img.getAttribute('alt');
-
-    if (src === null) {
-      console.dir(await img.innerHTML());
+    if ((await img.getAttribute('src')) === null) {
+      console.dir(
+        `🤔 ${tagName} ${$('*').eq(1).prop('tagName')} ${$('*')
+          .eq(3)
+          .prop('tagName')} ${innerHTML}`,
+      );
+      continue;
     }
-    console.log(`Link ${i + 1}: src="${src}", title="${title}", alt="${alt}"`);
+
+    imgList.push({
+      src: await img.getAttribute('src'),
+      title: await img.getAttribute('title'),
+      alt: await img.getAttribute('alt'),
+    });
   }
+
+  return imgList;
 }
