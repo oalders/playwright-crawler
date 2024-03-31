@@ -72,7 +72,7 @@ const crawl = async (nextPage: URL, page: Page) => {
     statusCode: response?.status(),
     description: $('meta[name="description"]').attr('content'),
     title: $('title').text(),
-    heading: $('h1').first().text(),
+    heading: $('h1').first().text().trim(),
     images: await imgAttributes(page),
   } as StackReport;
   if (response?.status() === 404) {
