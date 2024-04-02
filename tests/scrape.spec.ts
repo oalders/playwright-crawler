@@ -9,12 +9,18 @@ type Image = {
   alt: string | null;
 };
 
+type Link = {
+  href: string | null;
+  text: string | null;
+};
+
 type StackReport = {
   url: string | URL;
   visited: boolean;
   statusCode?: number;
   description?: string;
   images: Image[];
+  links: Link[];
   title?: string;
   heading?: string;
 };
@@ -74,6 +80,7 @@ const crawl = async (nextPage: URL, page: Page) => {
     title: $('title').text(),
     heading: $('h1').first().text().trim(),
     images: await imgAttributes(page),
+    links: await linkAttributes(page),
   } as StackReport;
   if (response?.status() === 404) {
     console.error(`404 on ${nextPage.toString()}`);
@@ -186,4 +193,29 @@ async function imgAttributes(page: Page): Promise<Image[]> {
   }
 
   return imgList;
+}
+
+async function linkAttributes(page: Page): Promise<Link[]> {
+  const links = page.getByRole('link');
+  const count = await links.count();
+  const linkList: Link[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const link = links.nth(i);
+    const text = await link.innerText();
+    if (text === '') {
+      const innerHTML = await link.innerHTML();
+      const $ = cheerio.load(innerHTML);
+      if ($('img').length > 0) {
+        continue;
+      }
+    }
+
+    linkList.push({
+      href: await link.getAttribute('href'),
+      text: await link.innerText(),
+    });
+  }
+
+  return linkList;
 }
