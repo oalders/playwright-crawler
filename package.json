@@ -9,7 +9,7 @@
   "author": "Olaf Alders",
   "license": "ISC",
   "devDependencies": {
-    "@playwright/test": "^1.43.1"
+    "@playwright/test": "^1.44.0"
   },
   "dependencies": {
     "@types/node": "^20.12.8",
