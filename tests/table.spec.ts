@@ -17,7 +17,27 @@ test('parse table', async ({ page }) => {
 
     const locTable = await tableToLocArray(found);
     expect(await locTable[0][0].innerHTML()).toEqual('First Name');
+
+    const match = await rowMatch(found, 'River');
+    expect(await match[0].innerHTML()).toEqual('River');
+    expect(await match[1].innerHTML()).toEqual('Cartwright');
 });
+
+// rowMatch is a function that
+// * receives Locator which is an HTML table
+// runs tableToLocArray
+// returns the row from the table where the first cell matches the provided value
+
+async function rowMatch(table: Locator, value: string): Promise<Locator[]> {
+    const locTable = await tableToLocArray(table);
+    const rowWithMatchingValue = await Promise.all(
+        locTable.map(async (row) => {
+            const innerHTML = await row[0].innerHTML();
+            return innerHTML === value ? row : null;
+        }),
+    ).then((rows) => rows.find((row) => row !== null));
+    return rowWithMatchingValue;
+}
 
 async function tableToArray(table: Locator): Promise<tableObj> {
     let locTable = await tableToLocArray(table);
