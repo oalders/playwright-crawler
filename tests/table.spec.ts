@@ -2,6 +2,7 @@ import { expect, Locator, test } from '@playwright/test';
 import path from 'path';
 
 type tableObj = string[][];
+type locObj = Locator[][];
 
 test('parse table', async ({ page }) => {
     const filePath = path.join(process.cwd(), 'test-data/table.html');
@@ -13,10 +14,29 @@ test('parse table', async ({ page }) => {
         ['Jackson', 'Lamb'],
         ['River', 'Cartwright'],
     ]);
+
+    const locTable = await tableToLocArray(found);
+    expect(await locTable[0][0].innerHTML()).toEqual('First Name');
 });
 
 async function tableToArray(table: Locator): Promise<tableObj> {
+    let locTable = await tableToLocArray(table);
     let asObj: tableObj = [];
+
+    for (let i = 0; i < locTable.length; i++) {
+        const thisRow = locTable[i];
+        const newRow: string[] = [];
+        for (let j = 0; j < thisRow.length; j++) {
+            newRow.push(await thisRow[j].innerHTML());
+        }
+        asObj.push(newRow);
+    }
+
+    return asObj;
+}
+
+async function tableToLocArray(table: Locator): Promise<locObj> {
+    let asObj: locObj = [];
 
     const rows = table.getByRole('row');
     const rowCount = await rows.count();
@@ -25,11 +45,11 @@ async function tableToArray(table: Locator): Promise<tableObj> {
         const row = rows.nth(i);
         const cells = row.getByRole('cell');
         const cellCount = await cells.count();
-        const thisRow: string[] = [];
+        const thisRow: Locator[] = [];
 
         for (let j = 0; j < cellCount; j++) {
             const cell = cells.nth(j);
-            thisRow.push(await cell.innerHTML());
+            thisRow.push(cell);
         }
 
         asObj.push(thisRow);
