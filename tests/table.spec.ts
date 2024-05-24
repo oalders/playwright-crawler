@@ -4,9 +4,12 @@ import path from 'path';
 type tableObj = string[][];
 type locObj = Locator[][];
 
-test('parse table', async ({ page }) => {
+test.beforeEach(async ({ page }) => {
     const filePath = path.join(process.cwd(), 'test-data/table.html');
     await page.goto(`file://${filePath}`);
+});
+
+test('tableToArray', async ({ page }) => {
     const found = page.getByRole('table');
     const table = await tableToArray(found);
     expect(table).toEqual([
@@ -14,32 +17,55 @@ test('parse table', async ({ page }) => {
         ['Jackson', 'Lamb'],
         ['River', 'Cartwright'],
     ]);
+});
 
+test('tableToLocArray', async ({ page }) => {
+    const found = page.getByRole('table');
     const locTable = await tableToLocArray(found);
     expect(await locTable[0][0].innerHTML()).toEqual('First Name');
+});
 
+test('find River via string match', async ({ page }) => {
+    const found = page.getByRole('table');
     const match = await rowMatch(found, 'River');
     expect(await match[0].innerHTML()).toEqual('River');
     expect(await match[1].innerHTML()).toEqual('Cartwright');
 });
 
-// rowMatch is a function that
-// * receives Locator which is an HTML table
-// runs tableToLocArray
-// returns the row from the table where the first cell matches the provided value
+test('find River via regex', async ({ page }) => {
+    const found = page.getByRole('table');
+    const match = await rowMatch(found, /River/);
+    expect(await match[0].innerHTML()).toEqual('River');
+    expect(await match[1].innerHTML()).toEqual('Cartwright');
+});
 
-const rowMatch = async function (table: Locator, value: string): Promise<Locator[]> {
+test('find multiple rows via regex', async ({ page }) => {
+    const found = page.getByRole('table');
+    const match = await rowMatch(found, /am/);
+    expect(await match[0].innerHTML()).toEqual('First Name');
+    expect(await match[1].innerHTML()).toEqual('Last Name');
+});
+
+async function rowMatch(
+    table: Locator,
+    value: string | RegExp,
+): Promise<Locator[]> {
     const locTable = await tableToLocArray(table);
-    const rowWithMatchingValue = await Promise.all(
+    const allRows = await Promise.all(
         locTable.map(async (row) => {
             const innerHTML = await row[0].innerHTML();
-            return innerHTML === value ? row : null;
+            if (typeof value === 'string') {
+                return innerHTML === value ? row : null;
+            } else {
+                return value.test(innerHTML) ? row : null;
+            }
         }),
-    ).then((rows) => rows.find((row) => row !== null));
+    );
+    const rowWithMatchingValue = allRows.find((row) => row !== null);
     return rowWithMatchingValue;
 }
 
-const tableToArray = async function (table: Locator): Promise<tableObj> {
+const tableToArray = async function(table: Locator): Promise<tableObj> {
     let locTable = await tableToLocArray(table);
     let asObj: tableObj = [];
 
@@ -53,9 +79,9 @@ const tableToArray = async function (table: Locator): Promise<tableObj> {
     }
 
     return asObj;
-}
+};
 
-const tableToLocArray = async function (table: Locator): Promise<locObj> {
+const tableToLocArray = async function(table: Locator): Promise<locObj> {
     let asObj: locObj = [];
 
     const rows = table.getByRole('row');
@@ -76,4 +102,4 @@ const tableToLocArray = async function (table: Locator): Promise<locObj> {
     }
 
     return asObj;
-}
+};
