@@ -28,7 +28,7 @@ test('parse table', async ({ page }) => {
 // runs tableToLocArray
 // returns the row from the table where the first cell matches the provided value
 
-async function rowMatch(table: Locator, value: string): Promise<Locator[]> {
+const rowMatch = async function (table: Locator, value: string): Promise<Locator[]> {
     const locTable = await tableToLocArray(table);
     const rowWithMatchingValue = await Promise.all(
         locTable.map(async (row) => {
@@ -39,7 +39,7 @@ async function rowMatch(table: Locator, value: string): Promise<Locator[]> {
     return rowWithMatchingValue;
 }
 
-async function tableToArray(table: Locator): Promise<tableObj> {
+const tableToArray = async function (table: Locator): Promise<tableObj> {
     let locTable = await tableToLocArray(table);
     let asObj: tableObj = [];
 
@@ -55,7 +55,7 @@ async function tableToArray(table: Locator): Promise<tableObj> {
     return asObj;
 }
 
-async function tableToLocArray(table: Locator): Promise<locObj> {
+const tableToLocArray = async function (table: Locator): Promise<locObj> {
     let asObj: locObj = [];
 
     const rows = table.getByRole('row');
