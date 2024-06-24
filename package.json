@@ -12,7 +12,7 @@
     "@playwright/test": "^1.44.0"
   },
   "dependencies": {
-    "@types/node": "^20.12.12",
+    "@types/node": "^20.14.8",
     "cheerio": "^1.0.0-rc.12",
     "fs": "^0.0.1-security",
     "json2csv": "^6.0.0-alpha.2",
