@@ -4,12 +4,13 @@
   "description": "Crawl the web using Playwright",
   "main": "index.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "tidy": "prettier --write '**/*.{ts,js}'"
   },
   "author": "Olaf Alders",
   "license": "ISC",
   "devDependencies": {
     "@playwright/test": "^1.44.0"
+    "@types/papaparse": "^5.3.14"
   },
   "dependencies": {
     "@types/node": "^20.12.12",
@@ -20,8 +21,5 @@
     "papaparse": "^5.4.1",
     "playwright-core": "^1.44.0",
     "stopwords": "^0.0.9"
-  },
-  "scripts": {
-    "tidy": "prettier --write '**/*.{ts,js}'"
   }
 }
