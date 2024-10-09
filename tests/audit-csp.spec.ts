@@ -1,4 +1,4 @@
-import { expect, Locator, test } from '@playwright/test';
+import { test } from '@playwright/test';
 
 test('check JS assets against CSP domains', async ({ page }) => {
     const d = await import(
@@ -11,7 +11,6 @@ test('check JS assets against CSP domains', async ({ page }) => {
     page.on('response', (response) => {
         if (response.url() === startUrl && response.status() === 200) {
             cspHeader = response.headers()['content-security-policy'];
-            console.log('CSP Header:', cspHeader);
         }
     });
     // Load the page
@@ -21,71 +20,80 @@ test('check JS assets against CSP domains', async ({ page }) => {
     await page.waitForLoadState('networkidle');
 
     // Parse the CSP header for allowed domains
-    const allowedDomains = Array.from(new Set(parseCsp(cspHeader)));
+    const cspSrcDomains = Array.from(new Set(parseCsp(cspHeader))).sort();
+    console.dir(cspSrcDomains);
 
     // Get all JavaScript assets
-    const jsAssets = await page.evaluate(() => {
-        return Array.from(
+    const srcAssets = await page.evaluate(() => {
+        const scriptSources = Array.from(
             new Set(
                 Array.from(document.querySelectorAll('script[src]')).map(
                     (script) => (script as HTMLScriptElement).src,
                 ),
             ),
-        ).sort();
+        );
+
+        const iframeSources = Array.from(
+            new Set(
+                Array.from(document.querySelectorAll('noscript')).flatMap(
+                    (noscript) => {
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = noscript.innerHTML;
+                        return Array.from(tempDiv.querySelectorAll('iframe[src]')).map(
+                            (iframe) => (iframe as HTMLIFrameElement).src,
+                        );
+                    },
+                ),
+            ),
+        );
+
+        return Array.from(new Set([...scriptSources, ...iframeSources])).sort();
     });
 
     // Extract domains from JS assets
-    const jsAssetDomains = Array.from(
-        new Set(jsAssets.map((asset: string) => new URL(asset).hostname)),
+    const srcAssetDomains = Array.from(
+        new Set(srcAssets.map((asset: string) => new URL(asset).hostname)),
     );
-    console.log('Found JS asset domains:', jsAssetDomains);
-    console.log('CSP domains:', allowedDomains);
+    console.log('Found JS asset domains:', srcAssetDomains);
 
     // Find domains that are no longer required
     // Filter out specific domains and any domains ending in maxmind.com
-    const filteredAllowedDomains = allowedDomains.filter((domain) => {
+    const filteredCspSrcDomains = cspSrcDomains.filter((domain) => {
         return !domain.endsWith('maxmind.com');
     });
 
     // Handle wildcard domains in CSP
-    const wildcardDomains = allowedDomains.filter((domain) =>
+    const wildcardDomains = cspSrcDomains.filter((domain) =>
         domain.startsWith('*.'),
     );
-    const finalAllowedDomains = filteredAllowedDomains.filter((domain) => {
-        return !wildcardDomains.some((wildcard) => {
-            const regex = new RegExp(`^${wildcard.replace('*.', '.*')}$`);
-            return regex.test(domain);
-        });
-    });
 
     // Find domains that are no longer required
-    const unusedDomains = jsAssetDomains.filter(
-        (domain) => !finalAllowedDomains.includes(domain),
-    );
+    const unusedDomains = srcAssetDomains.filter((domain) => {
+        return (
+            !filteredCspSrcDomains.includes(domain) &&
+            !wildcardDomains.some((wildcard) => {
+                const regex = new RegExp(`^${wildcard.replace('*.', '.*.')}$`);
+                return regex.test(domain);
+            })
+        );
+    });
 
     // Report unused domains
     if (unusedDomains.length > 0) {
-        console.log('Unused JS asset domains:', unusedDomains);
     } else {
         console.log('All JS asset domains are covered by CSP.');
     }
 });
 
 // Function to parse CSP header
-function parseCsp(csp) {
+function parseCsp(csp: string) {
     if (!csp) return [];
     const directives = csp.split(';').map((d) => d.trim());
     const allowedDomains = [];
 
-    console.log('---');
-    console.log(directives);
-    console.log('---');
     directives.forEach((directive) => {
         if (directive.startsWith('script-src')) {
             const sources = directive.split(' ');
-            console.log('>>>');
-            console.log(sources);
-            console.log('>>>');
             allowedDomains.push(
                 ...sources.filter(
                     (src) =>
