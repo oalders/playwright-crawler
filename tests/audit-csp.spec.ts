@@ -1,10 +1,9 @@
-import { test } from '@playwright/test';
+import { expect, Locator, test } from '@playwright/test';
 
-test('check JS assets against CSP domains', async ({ page }) => {
+test('check script-src CSP domains', async ({ page }) => {
     const d = await import(
         '/Users/olaf/Documents/github/oalders/debug-playwright/dist/index.js'
     );
-    // const dp = new d.DebugPlaywright({ page: page });
     const startUrl = 'https://www.maxmind.com/en/shopping-cart/summary';
 
     let cspHeader = '';
@@ -13,18 +12,12 @@ test('check JS assets against CSP domains', async ({ page }) => {
             cspHeader = response.headers()['content-security-policy'];
         }
     });
-    // Load the page
-    await page.goto(startUrl);
 
-    // Wait for the page to fully load
+    await page.goto(startUrl);
     await page.waitForLoadState('networkidle');
 
-    // Parse the CSP header for allowed domains
-    const cspSrcDomains = Array.from(new Set(parseCsp(cspHeader))).sort();
-    console.dir(cspSrcDomains);
-
-    // Get all JavaScript assets
-    const srcAssets = await page.evaluate(() => {
+    const cspSrcDomains = Array.from(new Set(parseCsp(cspHeader, 'script-src'))).sort();
+    const jsAssetsAndIframes = await page.evaluate(() => {
         const scriptSources = Array.from(
             new Set(
                 Array.from(document.querySelectorAll('script[src]')).map(
@@ -34,6 +27,14 @@ test('check JS assets against CSP domains', async ({ page }) => {
         );
 
         const iframeSources = Array.from(
+            new Set(
+                Array.from(document.querySelectorAll('iframe[src]')).map(
+                    (iframe) => (iframe as HTMLIFrameElement).src,
+                ),
+            ),
+        );
+
+        const noscriptIframeSources = Array.from(
             new Set(
                 Array.from(document.querySelectorAll('noscript')).flatMap(
                     (noscript) => {
@@ -47,52 +48,103 @@ test('check JS assets against CSP domains', async ({ page }) => {
             ),
         );
 
-        return Array.from(new Set([...scriptSources, ...iframeSources])).sort();
+        return Array.from(new Set([...scriptSources, ...iframeSources, ...noscriptIframeSources])).sort();
     });
 
-    // Extract domains from JS assets
-    const srcAssetDomains = Array.from(
-        new Set(srcAssets.map((asset: string) => new URL(asset).hostname)),
+    const jsAssetAndIframeDomains = Array.from(
+        new Set(jsAssetsAndIframes.map((asset: string) => new URL(asset).hostname)),
     );
-    console.log('Found JS asset domains:', srcAssetDomains);
+    console.log('Found JS asset and iframe domains:', jsAssetAndIframeDomains);
 
-    // Find domains that are no longer required
-    // Filter out specific domains and any domains ending in maxmind.com
-    const filteredCspSrcDomains = cspSrcDomains.filter((domain) => {
-        return !domain.endsWith('maxmind.com');
-    });
+    const filteredSrcAssetDomains = jsAssetAndIframeDomains.filter((domain) => !domain.endsWith('maxmind.com'));
 
-    // Handle wildcard domains in CSP
     const wildcardDomains = cspSrcDomains.filter((domain) =>
         domain.startsWith('*.'),
     );
 
-    // Find domains that are no longer required
-    const unusedDomains = srcAssetDomains.filter((domain) => {
-        return (
-            !filteredCspSrcDomains.includes(domain) &&
-            !wildcardDomains.some((wildcard) => {
-                const regex = new RegExp(`^${wildcard.replace('*.', '.*.')}$`);
-                return regex.test(domain);
-            })
-        );
+    const finalAllowedDomains = filteredSrcAssetDomains.filter((domain) => {
+        return !wildcardDomains.some((wildcard) => {
+            const regex = new RegExp(`^${wildcard.replace('*.', '.*.')}$`);
+            return regex.test(domain);
+        });
     });
 
-    // Report unused domains
+    const unusedDomains = finalAllowedDomains.filter(
+        (domain) => !cspSrcDomains.includes(domain),
+    );
+
     if (unusedDomains.length > 0) {
+        console.log('Unused JS asset and iframe domains:', unusedDomains);
     } else {
-        console.log('All JS asset domains are covered by CSP.');
+        console.log('All JS asset and iframe domains are covered by CSP.');
     }
 });
 
-// Function to parse CSP header
-function parseCsp(csp: string) {
+test('check connect-src CSP domains', async ({ page }) => {
+    const d = await import(
+        '/Users/olaf/Documents/github/oalders/debug-playwright/dist/index.js'
+    );
+    const startUrl = 'https://www.maxmind.com/en/shopping-cart/summary';
+
+    let cspHeader = '';
+    page.on('response', (response) => {
+        if (response.url() === startUrl && response.status() === 200) {
+            cspHeader = response.headers()['content-security-policy'];
+        }
+    });
+
+    await page.goto(startUrl);
+    await page.waitForLoadState('networkidle');
+
+    const cspConnectDomains = Array.from(new Set(parseCsp(cspHeader, 'connect-src'))).sort();
+    const connectSrcDomains = await page.evaluate(() => {
+        const connectSources = Array.from(
+            new Set(
+                Array.from(document.querySelectorAll('a[href]')).map(
+                    (link) => (link as HTMLAnchorElement).href,
+                ),
+            ),
+        );
+
+        return Array.from(new Set(connectSources)).sort();
+    });
+
+    const connectSrcAssetDomains = Array.from(
+        new Set(connectSrcDomains.map((asset: string) => new URL(asset).hostname)),
+    );
+    console.log('Found connect-src domains:', connectSrcAssetDomains);
+
+    const filteredConnectSrcDomains = connectSrcAssetDomains.filter((domain) => !domain.endsWith('maxmind.com'));
+
+    const wildcardDomains = cspConnectDomains.filter((domain) =>
+        domain.startsWith('*.'),
+    );
+
+    const finalAllowedDomains = filteredConnectSrcDomains.filter((domain) => {
+        return !wildcardDomains.some((wildcard) => {
+            const regex = new RegExp(`^${wildcard.replace('*.', '.*.')}$`);
+            return regex.test(domain);
+        });
+    });
+
+    const unusedDomains = finalAllowedDomains.filter(
+        (domain) => !cspConnectDomains.includes(domain),
+    );
+
+    if (unusedDomains.length > 0) {
+        console.log('Unused connect-src domains:', unusedDomains);
+    } else {
+        console.log('All connect-src domains are covered by CSP.');
+    }
+});
+
+function parseCsp(csp: string, directiveType: string) {
     if (!csp) return [];
     const directives = csp.split(';').map((d) => d.trim());
     const allowedDomains = [];
 
     directives.forEach((directive) => {
-        if (directive.startsWith('script-src')) {
+        if (directive.startsWith(directiveType)) {
             const sources = directive.split(' ');
             allowedDomains.push(
                 ...sources.filter(
