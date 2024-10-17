@@ -16,7 +16,9 @@ test('check script-src CSP domains', async ({ page }) => {
     await page.goto(startUrl);
     await page.waitForLoadState('networkidle');
 
-    const cspSrcDomains = Array.from(new Set(parseCsp(cspHeader, 'script-src'))).sort();
+    const cspSrcDomains = Array.from(
+        new Set(parseCsp(cspHeader, 'script-src')),
+    ).sort();
     const jsAssetsAndIframes = await page.evaluate(() => {
         const scriptSources = Array.from(
             new Set(
@@ -48,7 +50,9 @@ test('check script-src CSP domains', async ({ page }) => {
             ),
         );
 
-        return Array.from(new Set([...scriptSources, ...iframeSources, ...noscriptIframeSources])).sort();
+        return Array.from(
+            new Set([...scriptSources, ...iframeSources, ...noscriptIframeSources]),
+        ).sort();
     });
 
     const jsAssetAndIframeDomains = Array.from(
@@ -56,7 +60,9 @@ test('check script-src CSP domains', async ({ page }) => {
     );
     console.log('Found JS asset and iframe domains:', jsAssetAndIframeDomains);
 
-    const filteredSrcAssetDomains = jsAssetAndIframeDomains.filter((domain) => !domain.endsWith('maxmind.com'));
+    const filteredSrcAssetDomains = jsAssetAndIframeDomains.filter(
+        (domain) => !domain.endsWith('maxmind.com'),
+    );
 
     const wildcardDomains = cspSrcDomains.filter((domain) =>
         domain.startsWith('*.'),
@@ -80,12 +86,10 @@ test('check script-src CSP domains', async ({ page }) => {
     }
 });
 
-test('check connect-src CSP domains', async ({ page }) => {
-    const d = await import(
-        '/Users/olaf/Documents/github/oalders/debug-playwright/dist/index.js'
-    );
+test.only('check connect-src CSP domains', async ({ page }) => {
     const startUrl = 'https://www.maxmind.com/en/shopping-cart/summary';
 
+    // get CSP headers from initial page load
     let cspHeader = '';
     page.on('response', (response) => {
         if (response.url() === startUrl && response.status() === 200) {
@@ -96,40 +100,57 @@ test('check connect-src CSP domains', async ({ page }) => {
     await page.goto(startUrl);
     await page.waitForLoadState('networkidle');
 
-    const cspConnectDomains = Array.from(new Set(parseCsp(cspHeader, 'connect-src'))).sort();
-    const connectSrcDomains = await page.evaluate(() => {
-        const connectSources = Array.from(
-            new Set(
-                Array.from(document.querySelectorAll('a[href]')).map(
-                    (link) => (link as HTMLAnchorElement).href,
-                ),
-            ),
-        );
+    // we don't care about domains from maxmind.com or ones that start with
+    // *.google. as that's an incredibly long list.
+    const cspConnectDomains = Array.from(
+        new Set(parseCsp(cspHeader, 'connect-src')),
+    )
+        .filter(
+            (domain) =>
+                !domain.endsWith('maxmind.com') && !domain.startsWith('*.google.'),
+        )
+        .sort();
+    console.dir(cspConnectDomains);
 
-        return Array.from(new Set(connectSources)).sort();
+    const foundDomains = new Set<string>();
+    const responsePromises = [];
+    page.on('response', async (response) => {
+        if (response.request().resourceType() === 'script') {
+            console.log('JavaScript file:', response.url());
+            const responsePromise = response
+                .text()
+                .then((content) => {
+                    cspConnectDomains.forEach((domain) => {
+                        if (content.includes(domain)) {
+                            foundDomains.add(domain);
+                        }
+                    });
+                })
+                .catch((error) => {
+                    console.error(`Failed to read content of ${response.url()}:`, error);
+                });
+            responsePromises.push(responsePromise);
+        }
     });
 
-    const connectSrcAssetDomains = Array.from(
-        new Set(connectSrcDomains.map((asset: string) => new URL(asset).hostname)),
-    );
-    console.log('Found connect-src domains:', connectSrcAssetDomains);
-
-    const filteredConnectSrcDomains = connectSrcAssetDomains.filter((domain) => !domain.endsWith('maxmind.com'));
+    await page.goto(startUrl);
+    await page.waitForLoadState('networkidle');
+    console.dir(foundDomains);
 
     const wildcardDomains = cspConnectDomains.filter((domain) =>
         domain.startsWith('*.'),
     );
 
-    const finalAllowedDomains = filteredConnectSrcDomains.filter((domain) => {
-        return !wildcardDomains.some((wildcard) => {
-            const regex = new RegExp(`^${wildcard.replace('*.', '.*.')}$`);
-            return regex.test(domain);
-        });
+    const unusedDomains = cspConnectDomains.filter((domain) => {
+        return (
+            !domain.endsWith('maxmind.com') &&
+            !wildcardDomains.some((wildcard) => {
+                const regex = new RegExp(`^${wildcard.replace('*.', '.*.')}$`);
+                return regex.test(domain);
+            }) &&
+            !foundDomains.has(domain)
+        );
     });
-
-    const unusedDomains = finalAllowedDomains.filter(
-        (domain) => !cspConnectDomains.includes(domain),
-    );
 
     if (unusedDomains.length > 0) {
         console.log('Unused connect-src domains:', unusedDomains);
@@ -158,6 +179,7 @@ function parseCsp(csp: string, directiveType: string) {
         }
     });
 
+    // console.dir(allowedDomains);
     return allowedDomains.map(
         (domain) => new URL(domain, 'https://www.maxmind.com').hostname,
     ); // Use a base URL for relative domains
