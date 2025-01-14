@@ -18,7 +18,7 @@
     "fs": "^0.0.1-security",
     "json2csv": "^6.0.0-alpha.2",
     "natural": "^8.0.1",
-    "papaparse": "^5.4.1",
+    "papaparse": "^5.5.1",
     "playwright-core": "^1.48.2",
     "stopwords": "^0.0.9"
   }
