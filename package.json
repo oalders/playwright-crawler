@@ -19,7 +19,7 @@
     "json2csv": "^6.0.0-alpha.2",
     "natural": "^8.1.0",
     "papaparse": "^5.5.3",
-    "playwright-core": "^1.52.0",
+    "playwright-core": "^1.53.1",
     "stopwords": "^0.0.9"
   }
 }
