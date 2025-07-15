@@ -9,17 +9,17 @@
   "author": "Olaf Alders",
   "license": "ISC",
   "devDependencies": {
-    "@playwright/test": "^1.52.0",
+    "@playwright/test": "^1.54.1",
     "@types/papaparse": "^5.3.16"
   },
   "dependencies": {
     "@types/node": "^22.15.21",
-    "cheerio": "^1.0.0-rc.12",
+    "cheerio": "^1.1.0",
     "fs": "^0.0.1-security",
     "json2csv": "^6.0.0-alpha.2",
     "natural": "^8.1.0",
     "papaparse": "^5.5.3",
-    "playwright-core": "^1.52.0",
+    "playwright-core": "^1.54.1",
     "stopwords": "^0.0.9"
   }
 }
