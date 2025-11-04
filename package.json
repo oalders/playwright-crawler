@@ -13,8 +13,8 @@
     "@types/papaparse": "^5.3.16"
   },
   "dependencies": {
-    "@types/node": "^24.0.13",
-    "cheerio": "^1.1.0",
+    "@types/node": "^24.10.0",
+    "cheerio": "^1.1.2",
     "fs": "^0.0.1-security",
     "json2csv": "^6.0.0-alpha.2",
     "natural": "^8.1.0",
